@@ -1,0 +1,36 @@
+#!/bin/bash
+# shell 并发脚本
+# 启动指定个数的后台任务，实现并发效果
+# 终止脚本后，会等待所有后台任务结束，然后推出脚本
+
+multiprocess(){
+    trap "echo \"wait for exit\"; wait; exit 0" 2
+    local limit=10
+    local id=0
+    while :; do
+        id=$(($id + 1))
+        {
+            echo "task id is $id"
+#            sh -c "$@"
+            $@ $id
+            if [ $? -eq 0 ]; then
+                echo "task_$id end"
+            else
+                echo "task_$id exit with $?"
+            fi
+        } &   
+        sum=$(ps -ef | awk -v ppid=$$ 'ppid == $3{print}' | wc -l)
+        while [ $sum -gt $limit ]; do
+            sleep 0.1
+            sum=$(ps -ef | awk -v ppid=$$ 'ppid == $3{print}' | wc -l)
+        done
+    done
+}
+
+# task "sleep 5; echo \"abc\""
+
+func_sleep(){
+    sleep 5
+    echo "$1"
+}
+
